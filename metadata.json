@@ -1,0 +1,21 @@
+{
+  "name": "Minimalistic Wave Tab",
+  "image": "logo.png",
+  "banner": "banner.png",
+  "libraryLogo": "logo.png",
+  "author": "dieugh",
+  "description": "Минималистичный вид новой вкладки «Моя волна».",
+  "version": "1.0.0",
+  "css": "",
+  "script": "script.js",
+  "type": "script",
+  "tags": [],
+  "dependencies": [],
+  "conflictsWith": [],
+  "allowedUrls": [],
+  "supportedVersions": [
+    "^5.97.3"
+  ],
+  "id": "89d1cb742dffe26d996400a4",
+  "installSource": "local"
+}
