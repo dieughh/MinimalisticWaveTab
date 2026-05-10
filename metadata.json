@@ -6,7 +6,7 @@
   "author": "dieugh",
   "description": "Минималистичный вид новой вкладки «Моя волна».",
   "version": "1.0.0",
-  "css": "",
+  "css": "style.css",
   "script": "script.js",
   "type": "script",
   "tags": [],
@@ -17,5 +17,6 @@
     "^5.97.3"
   ],
   "id": "89d1cb742dffe26d996400a4",
-  "installSource": "local"
+  "installSource": "local",
+  "storeAddonId": "e16a6e34-6bd4-453c-971c-975573e85fc0"
 }

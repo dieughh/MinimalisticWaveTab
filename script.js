@@ -1,114 +1,108 @@
-function injectStyles() {
-    const styles = `
-        /* === СКРЫТИЕ ЛИШНЕГО === */
-        [class*="WheelDesktop_root"] { display: none !important; }
-        [class*="WordsCard_root"] { display: none !important; }
-        [class*="VibeArtistCover_cover"] { display: none !important; }
-        [class*="VibeDynamicArtists_root"] { display: none !important; }
-        img[class*="AlbumCover_cover"] { display: none !important; }
-        [class*="AlbumCover_playButtonContainer"] { background-color: transparent !important; }
-        [class*="VibePage_hoveredButton"] { opacity: 1 !important; }
+const ADDON_NAME = 'Minimalistic Wave Tab';
 
-        /* === ОСНОВНАЯ СЕТКА === */
-        [class*="VibePage_root"] {
-            position: relative !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            height: 100% !important;
-            overflow: hidden !important;
-            grid-template-areas: none !important;
-            grid-template-columns: none !important;
-            grid-template-rows: none !important;
-        }
-
-        [class*="VibePage_meta"] {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            width: 100% !important;
-            flex: 1 !important;
-            min-height: 0 !important;
-            z-index: 1;
-        }
-
-        [class*="VibePage_playerBlock"] {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            width: 100% !important;
-            margin-top: auto !important;
-        }
-
-        /* === ПЛЕЕР === */
-        [class*="VibePlayerBar_root"] {
-            width: min(28.75rem, 100%) !important;
-            position: static !important;
-            bottom: auto !important;
-            left: auto !important;
-            transform: none !important;
-        }
-        [class*="VibePlayerBar_progress"] { width: 100% !important; }
-        [class*="VibePlayerBar_center"] { width: 100% !important; }
-
-        [class*="AlbumCover_root"] {
-            position: static !important;
-            inset-block-end: auto !important;
-            align-self: center !important;
-        }
-
-        [class*="VibeResetButton_container"] {
-            margin-left: auto !important;
-            margin-right: auto !important;
-        }
-
-        /* === АНИМАЦИЯ: фон внутри VibePage_root, БЕЗ ОГРАНИЧЕНИЙ РАЗМЕРА CANVAS === */
-        [class*="VibeWidgetAnimation_root"] {
-            position: absolute !important;
-            left: 0 !important;
-            top: calc(0px + var(--vibe-animation-shift-y, -70px)) !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 0 !important;
-            pointer-events: none !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            transform: none !important;
-        }
-
-        /* Убираем ограничения размера canvas – пусть будет как в оригинале */
-        [class*="VibeWidgetAnimation_root"] canvas {
-            width: 150% !important;
-            height: 150% !important;
-        }
-    `;
-
-    const styleTag = document.createElement('style');
-    styleTag.textContent = styles;
-    styleTag.setAttribute('data-pulse-sync-vibe-cleaner', '');
-    document.head.appendChild(styleTag);
+// --- Хелперы PulseSync ---
+function unwrapSetting(entry, fallback) {
+    if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+        if (typeof entry.value !== 'undefined') return entry.value;
+        if (typeof entry.default !== 'undefined') return entry.default;
+    }
+    return typeof entry !== 'undefined' ? entry : fallback;
 }
 
-function moveAnimation() {
-    const observer = new MutationObserver(() => {
+function getAddonSettings(addonName) {
+    return window.pulsesyncApi?.getSettings(addonName) ?? {
+        getCurrent: () => ({}),
+        onChange: () => () => {},
+    };
+}
+
+const store = getAddonSettings(ADDON_NAME);
+let settings = store.getCurrent();
+
+// Применяем CSS-переменные и управляем видимостью canvas
+function applySettings(s) {
+    const playerWidth = unwrapSetting(s.playerWidth, 100);
+    const animEnabled = unwrapSetting(s.animationEnabled, true);
+    const animScale = unwrapSetting(s.animationScale, 1.5);
+    const topOffset = unwrapSetting(s.animationTopOffset, 0);
+    const leftOffset = unwrapSetting(s.animationLeftOffset, 0);
+
+    document.documentElement.style.setProperty('--ps-player-width', playerWidth + '%');
+    document.documentElement.style.setProperty('--ps-animation-scale', animScale);
+    document.documentElement.style.setProperty('--ps-animation-top-offset', topOffset + 'px');
+    document.documentElement.style.setProperty('--ps-animation-left-offset', leftOffset + 'px');
+
+    // Сразу применяем видимость и позицию к canvas, если он существует
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+        if (animEnabled) {
+            canvas.style.display = '';
+            centerCanvas(canvas);
+        } else {
+            canvas.style.display = 'none';
+        }
+    }
+}
+
+applySettings(settings);
+
+store.onChange((newSettings) => {
+    settings = newSettings;
+    applySettings(settings);
+});
+
+// --- Центрирование canvas (учитываем смещения по горизонтали и вертикали) ---
+function centerCanvas() {
+    const root = document.querySelector('[class*="VibePage_root"]');
+    const canvas = document.querySelector('canvas');
+    if (!root || !canvas) return;
+
+    const enabled = unwrapSetting(settings.animationEnabled, true);
+    if (!enabled) {
+        canvas.style.display = 'none';
+        return;
+    }
+    canvas.style.display = '';
+
+    const rootRect = root.getBoundingClientRect();
+    const scale = unwrapSetting(settings.animationScale, 1.5);
+    const size = Math.max(rootRect.width, rootRect.height) * scale;
+    const topOffset = unwrapSetting(settings.animationTopOffset, 0);
+    const leftOffset = unwrapSetting(settings.animationLeftOffset, 0);
+
+    canvas.style.position = 'absolute';
+    canvas.style.left = (rootRect.width - size) / 2 + leftOffset + 'px'; // добавляем горизонтальное смещение
+    canvas.style.top = (rootRect.height - size) / 2 + topOffset + 'px';   // добавляем вертикальное смещение
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.style.zIndex = '0';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.objectFit = 'cover';
+}
+
+// --- Отслеживание появления canvas (не отключаем наблюдатель) ---
+const canvasObserver = new MutationObserver(() => {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
         const root = document.querySelector('[class*="VibePage_root"]');
-        const anim = document.querySelector('[data-test-id="VIBE_ANIMATION"]');
-        if (root && anim && anim.parentElement !== root) {
-            root.insertBefore(anim, root.firstChild);
-            observer.disconnect();
+        if (root && canvas.parentElement !== root) {
+            root.insertBefore(canvas, root.firstChild);
         }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-}
+        centerCanvas();
+    }
+});
+canvasObserver.observe(document.body, { childList: true, subtree: true });
 
-function init() {
-    injectStyles();
-    moveAnimation();
-}
+window.addEventListener('resize', centerCanvas);
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Первичный вызов, если canvas уже есть
+(function initialCheck() {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+        const root = document.querySelector('[class*="VibePage_root"]');
+        if (root && canvas.parentElement !== root) {
+            root.insertBefore(canvas, root.firstChild);
+        }
+        centerCanvas();
+    }
+})();

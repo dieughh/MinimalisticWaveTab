@@ -1,0 +1,80 @@
+/* === СКРЫТИЕ ЛИШНЕГО === */
+[class*="WheelDesktop_root"] { display: none !important; }
+[class*="WordsCard_root"] { display: none !important; }
+[class*="VibeArtistCover_cover"] { display: none !important; }
+[class*="VibeDynamicArtists_root"] { display: none !important; }
+img[class*="AlbumCover_cover"] { display: none !important; }
+[class*="AlbumCover_playButtonContainer"] { background-color: transparent !important; }
+[class*="VibePage_hoveredButton"] { opacity: 1 !important; }
+
+/* === ОСНОВНАЯ СЕТКА === */
+[class*="VibePage_root"] {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    grid-template-areas: none !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+}
+
+[class*="VibePage_meta"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    z-index: 1;
+}
+
+[class*="VibePage_meta"] a,
+[class*="VibePage_textContainer"] a,
+[class*="AlbumCover_root"] a,
+[class*="VibeArtistCover_root"] {
+    pointer-events: none !important;
+}
+
+[class*="VibePage_playerBlock"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-top: auto !important;
+}
+
+/* === ПЛЕЕР === */
+[class*="VibePlayerBar_root"] {
+    width: 100% !important;                       
+    position: static !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+}
+
+/* === ПЛЕЕР === */
+[class*="VibePlayerBar_progress"] {
+    width: var(--ps-player-width, 100%) !important;
+}
+
+
+[class*="AlbumCover_root"] {
+    position: static !important;
+    inset-block-end: auto !important;
+    align-self: center !important;
+}
+
+[class*="VibeResetButton_container"] {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* === АНИМАЦИЯ === */
+canvas {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    object-fit: cover;
+}
