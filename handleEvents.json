@@ -13,6 +13,17 @@
           "step": 1,
           "value": 100,
           "defaultParameter": 100
+        },
+        {
+          "id": "coverOffsetX",
+          "name": "Смещение кнопок по горизонтали (px)",
+          "description": "Сдвиг кнопок паузы/трека влево/вправо.",
+          "type": "slider",
+          "min": -200,
+          "max": 200,
+          "step": 10,
+          "value": 0,
+          "defaultParameter": 0
         }
       ]
     },
