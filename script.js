@@ -1,5 +1,4 @@
 const ADDON_NAME = 'Minimalistic Wave Tab';
-const APPLY_INTERVAL = 200;
 
 function unwrapSetting(entry, fallback) {
     if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
@@ -10,18 +9,11 @@ function unwrapSetting(entry, fallback) {
 }
 
 let currentSettings = {};
-
-function updateSettings() {
-    const store = window.pulsesyncApi?.getSettings(ADDON_NAME);
-    if (!store) return;
-    const newSettings = store.getCurrent();
-    if (JSON.stringify(newSettings) !== JSON.stringify(currentSettings)) {
-        currentSettings = newSettings || {};
-        applyAll(currentSettings);
-    }
-}
+let settingsApi = null;
+let isFrozen = false; // флаг заморозки
 
 function applyAll(s) {
+    if (isFrozen) return;
     const playerWidth = unwrapSetting(s.playerWidth, 100);
     const coverOffsetX = unwrapSetting(s.coverOffsetX, 0);
 
@@ -40,6 +32,7 @@ function applyAll(s) {
 }
 
 function centerCanvas() {
+    if (isFrozen) return;
     const canvas = document.querySelector('canvas');
     if (!canvas) return;
     if (!currentSettings || !unwrapSetting(currentSettings.animationEnabled, true)) {
@@ -49,6 +42,7 @@ function centerCanvas() {
     canvas.style.display = '';
 
     requestAnimationFrame(() => {
+        if (isFrozen) return;
         const root = document.querySelector('[class*="VibePage_root"]');
         if (!root) return;
         const rootRect = root.getBoundingClientRect();
@@ -71,6 +65,7 @@ function centerCanvas() {
 }
 
 function moveCanvasToRoot() {
+    if (isFrozen) return false;
     const canvas = document.querySelector('canvas');
     if (!canvas) return false;
     const root = document.querySelector('[class*="VibePage_root"]');
@@ -82,6 +77,7 @@ function moveCanvasToRoot() {
 }
 
 const canvasObserver = new MutationObserver(() => {
+    if (isFrozen) return;
     if (moveCanvasToRoot()) {
         canvasObserver.disconnect();
     }
@@ -90,43 +86,50 @@ const canvasObserver = new MutationObserver(() => {
         centerCanvas();
     }
 });
-canvasObserver.observe(document.body, { childList: true, subtree: true });
-
-if (moveCanvasToRoot() && currentSettings && Object.keys(currentSettings).length > 0) {
-    applyAll(currentSettings);
-    centerCanvas();
-}
 
 const coverObserver = new MutationObserver(() => {
+    if (isFrozen) return;
     const cover = document.querySelector('[class*="AlbumCover_root"]');
     if (cover && currentSettings && Object.keys(currentSettings).length > 0) {
         applyAll(currentSettings);
         coverObserver.disconnect();
     }
 });
-coverObserver.observe(document.body, { childList: true, subtree: true });
-
-setInterval(updateSettings, APPLY_INTERVAL);
-window.addEventListener('resize', centerCanvas);
-setTimeout(centerCanvas, 2000);
-setTimeout(() => {
-    if (currentSettings && Object.keys(currentSettings).length > 0) {
-        applyAll(currentSettings);
-        centerCanvas();
-    }
-}, 1500);
 
 const SWIPER_HIDDEN_CLASS = 'ps-swiper-hidden-left';
+const STORAGE_KEY = 'ps_wheel_open';
+
+function saveWheelState(isOpen) {
+    localStorage.setItem(STORAGE_KEY, isOpen ? 'true' : 'false');
+}
+
+function loadWheelState() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === 'true';
+}
+
+function applyWheelState(swiper, content, canvasEl, isOpen) {
+    if (isOpen) {
+        swiper.classList.remove(SWIPER_HIDDEN_CLASS);
+        if (content) content.classList.add('ps-content-shifted');
+        if (canvasEl) canvasEl.classList.add('ps-canvas-shifted');
+    } else {
+        swiper.classList.add(SWIPER_HIDDEN_CLASS);
+        if (content) content.classList.remove('ps-content-shifted');
+        if (canvasEl) canvasEl.classList.remove('ps-canvas-shifted');
+    }
+}
 
 function initSwiperToggle() {
+    if (isFrozen) return;
     const swiper = document.querySelector('.swiper');
     if (!swiper) return;
 
-    swiper.classList.add(SWIPER_HIDDEN_CLASS);
     const meta = document.querySelector('[class*="VibePage_meta"]');
     const canvas = document.querySelector('canvas');
-    if (meta) meta.classList.remove('ps-content-shifted');
-    if (canvas) canvas.classList.remove('ps-canvas-shifted');
+
+    const savedOpen = loadWheelState();
+    applyWheelState(swiper, meta, canvas, savedOpen);
 
     if (document.getElementById('ps-custom-settings-btn')) return;
 
@@ -145,20 +148,23 @@ function initSwiperToggle() {
     `;
 
     btn.addEventListener('click', () => {
+        if (isFrozen) return;
+        const isCurrentlyOpen = !swiper.classList.contains(SWIPER_HIDDEN_CLASS);
+        const newIsOpen = !isCurrentlyOpen;
+        
         swiper.classList.toggle(SWIPER_HIDDEN_CLASS);
         const content = document.querySelector('[class*="VibePage_meta"]');
         const canvasEl = document.querySelector('canvas');
         if (content) content.classList.toggle('ps-content-shifted');
         if (canvasEl) canvasEl.classList.toggle('ps-canvas-shifted');
+        
+        saveWheelState(newIsOpen);
     });
 
-    // НОВОЕ: ищем блок "Моя волна" (VibeResetButton_root)
     const resetButtonRoot = document.querySelector('[class*="VibeResetButton_root"]');
     if (resetButtonRoot && resetButtonRoot.parentNode) {
-        // Вставляем кнопку после этого блока
         resetButtonRoot.parentNode.insertBefore(btn, resetButtonRoot.nextSibling);
     } else {
-        // fallback: старая логика — вставляем в VibePage_meta перед плеером
         const metaContainer = document.querySelector('[class*="VibePage_meta"]');
         if (metaContainer) {
             const playerBlock = metaContainer.querySelector('[class*="VibePage_playerBlock"]');
@@ -168,16 +174,146 @@ function initSwiperToggle() {
     }
 }
 
-const swiperObserver = new MutationObserver(() => {
-    if (document.querySelector('.swiper')) {
-        initSwiperToggle();
-        swiperObserver.disconnect();
-    }
-});
-swiperObserver.observe(document.body, { childList: true, subtree: true });
+let swiperObserver = null;
 
-if (document.querySelector('.swiper')) {
-    initSwiperToggle();
+function startSwiperObserver() {
+    if (swiperObserver) swiperObserver.disconnect();
+    swiperObserver = new MutationObserver(() => {
+        if (isFrozen) return;
+        const swiper = document.querySelector('.swiper');
+        if (swiper) {
+            if (!document.getElementById('ps-custom-settings-btn')) {
+                initSwiperToggle();
+            } else {
+                const meta = document.querySelector('[class*="VibePage_meta"]');
+                const canvas = document.querySelector('canvas');
+                const savedOpen = loadWheelState();
+                applyWheelState(swiper, meta, canvas, savedOpen);
+            }
+        }
+    });
+    swiperObserver.observe(document.body, { childList: true, subtree: true });
 }
 
-updateSettings();
+let lastUrl = location.href;
+const urlObserver = new MutationObserver(() => {
+    if (isFrozen) return;
+    const url = location.href;
+    if (url !== lastUrl) {
+        lastUrl = url;
+        setTimeout(() => {
+            if (isFrozen) return;
+            const swiper = document.querySelector('.swiper');
+            if (swiper && !document.getElementById('ps-custom-settings-btn')) {
+                initSwiperToggle();
+            } else if (swiper) {
+                const meta = document.querySelector('[class*="VibePage_meta"]');
+                const canvas = document.querySelector('canvas');
+                const savedOpen = loadWheelState();
+                applyWheelState(swiper, meta, canvas, savedOpen);
+            }
+        }, 500);
+    }
+});
+
+function startAddon() {
+    canvasObserver.observe(document.body, { childList: true, subtree: true });
+    coverObserver.observe(document.body, { childList: true, subtree: true });
+    
+    if (!isFrozen && moveCanvasToRoot() && currentSettings && Object.keys(currentSettings).length > 0) {
+        applyAll(currentSettings);
+        centerCanvas();
+    }
+
+    window.addEventListener('resize', () => {
+        if (!isFrozen) centerCanvas();
+    });
+    setTimeout(() => { if (!isFrozen) centerCanvas(); }, 2000);
+    setTimeout(() => {
+        if (!isFrozen && currentSettings && Object.keys(currentSettings).length > 0) {
+            applyAll(currentSettings);
+            centerCanvas();
+        }
+    }, 1500);
+
+    startSwiperObserver();
+    urlObserver.observe(document, { subtree: true, childList: true });
+}
+
+function freeze() {
+    if (isFrozen) return;
+    isFrozen = true;
+    console.log('[MWT] Заморозка активности');
+}
+
+function unfreeze() {
+    if (!isFrozen) return;
+    isFrozen = false;
+    console.log('[MWT] Разморозка');
+    if (settingsApi) {
+        const s = settingsApi.getCurrent() || {};
+        currentSettings = s;
+        applyAll(currentSettings);
+    }
+    centerCanvas();
+    const swiper = document.querySelector('.swiper');
+    if (swiper && !document.getElementById('ps-custom-settings-btn')) {
+        initSwiperToggle();
+    }
+}
+
+// ========== ЗАМОРОЗКА ПРИ СВОРАЧИВАНИИ ==========
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) freeze(); else unfreeze();
+});
+
+function initSettings() {
+    if (!window.pulsesyncApi) {
+        setTimeout(initSettings, 500);
+        return;
+    }
+    const api = window.pulsesyncApi.getSettings(ADDON_NAME);
+    if (!api || typeof api.onChange !== 'function') {
+        setTimeout(initSettings, 1000);
+        return;
+    }
+    settingsApi = api;
+    const s = api.getCurrent() || {};
+    currentSettings = s;
+    applyAll(currentSettings);
+    api.onChange((newSettings) => {
+        currentSettings = newSettings || {};
+        applyAll(currentSettings);
+    });
+    console.log('[MWT] Settings API ready');
+    startAddon();
+}
+
+function waitForPlayer(callback) {
+    if (!window.pulsesyncApi) {
+        setTimeout(() => waitForPlayer(callback), 200);
+        return;
+    }
+    if (typeof window.pulsesyncApi._waitForPlayer === 'function') {
+        console.log('[MWT] Ожидание PLAYER_READY...');
+        window.pulsesyncApi._waitForPlayer(() => {
+            console.log('[MWT] PLAYER_READY получен, дополнительная пауза 1.5 сек');
+            setTimeout(callback, 1500);  // даём плееру устаканиться
+        });
+        return;
+    }
+    if (window.Theme) {
+        try {
+            const theme = new Theme(ADDON_NAME);
+            theme.player.on('ready', () => {
+                console.log('[MWT] PLAYER_READY через Theme');
+                setTimeout(callback, 1500);
+            });
+            return;
+        } catch (e) {}
+    }
+    console.warn('[MWT] PLAYER_READY не отслежен, запуск через 3 сек');
+    setTimeout(callback, 3000);
+}
+
+waitForPlayer(initSettings);

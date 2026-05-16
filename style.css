@@ -94,9 +94,8 @@ canvas.ps-canvas-shifted {
     margin-left: 300px;
 }
 
-
-/* === КОЛЕСО РЕКОМЕНДАЦИЙ === */
-.swiper {
+/* === КОЛЕСО РЕКОМЕНДАЦИЙ (только наше, с уникальным классом) === */
+.swiper.VibePage_wheel__E_p8_ {
     position: absolute !important;
     top: 0;
     left: 0;
@@ -113,11 +112,11 @@ canvas.ps-canvas-shifted {
     scrollbar-width: none;
 }
 
-.swiper:not(.ps-swiper-hidden-left) {
+.swiper.VibePage_wheel__E_p8_:not(.ps-swiper-hidden-left) {
     transform: translateX(0);
 }
 
-.swiper::-webkit-scrollbar {
+.swiper.VibePage_wheel__E_p8_::-webkit-scrollbar {
     display: none;
 }
 
@@ -137,3 +136,9 @@ canvas.ps-canvas-shifted {
     margin-right: auto;
     margin-top: 12px !important;
 }
+
+[class*="VibePage_meta"].ps-content-shifted [class*="VibePlayerBar_progress"] {
+    max-width: calc(100% - 600px) !important;
+    width: var(--ps-player-width, 100%) !important;
+}
+

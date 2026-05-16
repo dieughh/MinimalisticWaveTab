@@ -5,7 +5,7 @@
   "libraryLogo": "logo.png",
   "author": "dieugh",
   "description": "Минималистичный вид новой вкладки «Моя волна».",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "css": "style.css",
   "script": "script.js",
   "type": "script",
@@ -19,5 +19,6 @@
   "id": "496f02ef-8227-45d4-9e92-06048c8e4322",
   "fromPext": true,
   "installSource": "local",
-  "packageHash": "1789e3071bf36f3de8829332ed9b7ad5788a903e5e6f745d55b35223619cb466"
+  "packageHash": "1789e3071bf36f3de8829332ed9b7ad5788a903e5e6f745d55b35223619cb466",
+  "storeAddonId": "496f02ef-8227-45d4-9e92-06048c8e4322"
 }
