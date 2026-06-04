@@ -142,3 +142,14 @@ canvas.ps-canvas-shifted {
     width: var(--ps-player-width, 100%) !important;
 }
 
+/* Обеспечиваем одинаковое поведение сдвига и анимации для контейнера Lite Mode */
+[class*="VibeWidgetAnimation_root"] {
+    will-change: left, top, margin-left;
+    transition: margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    margin-left: 0;
+    transform: none !important;
+}
+
+[class*="VibeWidgetAnimation_root"].ps-canvas-shifted {
+    margin-left: 300px !important;
+}
