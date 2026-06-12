@@ -8,148 +8,325 @@ img[class*="AlbumCover_cover"] { display: none !important; }
 
 /* === ОСНОВНАЯ СЕТКА === */
 [class*="VibePage_root"] {
-    position: relative !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    height: 100% !important;
-    overflow: hidden !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  contain: layout style paint !important;
 }
 
 [class*="VibePage_meta"] {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    width: 100% !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    z-index: 1;
-    transition: margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
-    margin-left: 0 !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  z-index: 2 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  transition:
+    margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
-[class*="VibePage_meta"].ps-content-shifted {
-    margin-left: 600px !important;
-}
-
+/*
+  ВАЖНО:
+  Раньше тут было min-height: 100%, из-за этого нижний блок плеера
+  выталкивался вниз и обрезался при открытом колесе рекомендаций.
+*/
 [class*="VibePage_textContainer"] {
-    min-height: 100% !important;
+  min-height: 0 !important;
+  height: auto !important;
+  flex: 1 1 auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
 }
 
 [class*="VibePage_meta"] a,
 [class*="VibePage_textContainer"] a,
 [class*="AlbumCover_root"] a,
 [class*="VibeArtistCover_root"] {
-    pointer-events: none !important;
+  pointer-events: none !important;
 }
 
 [class*="VibePage_playerBlock"] {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    width: 100% !important;
-    margin-top: auto !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: auto !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding-bottom: clamp(8px, 1.8vh, 18px) !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  z-index: 5 !important;
 }
 
 /* === ПЛЕЕР === */
 [class*="VibePlayerBar_root"] {
-    width: 100% !important;                       
-    position: static !important;
-    bottom: auto !important;
-    left: auto !important;
-    transform: none !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  z-index: 6 !important;
 }
 
 [class*="VibePlayerBar_progress"] {
-    width: var(--ps-player-width, 100%) !important;
+  width: var(--ps-player-width, 100%) !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto auto auto !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
 }
 
+[class*="VibePlayerBar_progress"] > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+[class*="VibePlayerBar_progress"] > button {
+  flex-shrink: 0 !important;
+  pointer-events: auto !important;
+}
+
+/* Обложка и кнопки управления */
 [class*="AlbumCover_root"] {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: var(--ym-spacer-size-m, 1rem) !important;
-    position: static !important;
-    inset-block-end: auto !important;
-    align-self: center !important;
+  position: static !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: var(--ym-spacer-size-m, 1rem) !important;
+  inset-block-end: auto !important;
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  flex-wrap: nowrap !important;
+  overflow: visible !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  z-index: 6 !important;
+}
+
+[class*="AlbumCover_root"] > button {
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
 }
 
 [class*="VibeResetButton_container"] {
-    margin-left: auto !important;
-    margin-right: auto !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
-/* === АНИМАЦИЯ (canvas) === */
+/* === АНИМАЦИЯ === */
 canvas {
-    position: absolute;
-    z-index: 1;
-    pointer-events: none;
-    object-fit: cover;
-    will-change: left, top, margin-left;
-    transition: margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
-    margin-left: 0;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  object-fit: cover !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform-origin: 0 0 !important;
+  will-change: transform, width, height !important;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
-canvas.ps-canvas-shifted {
-    margin-left: 300px;
+/*
+  Lite Mode: Яндекс Музыка вместо canvas показывает статичную картинку.
+  Размер контейнера задаётся JS-ом через общий animationScale, но с отдельным
+  базовым коэффициентом, чтобы дефолтный размер не раздувался как canvas.
+*/
+[class*="VibeWidgetAnimation_root"] {
+  position: absolute !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  object-fit: cover !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  will-change: left, top, width, height, margin-left !important;
+  transition:
+    left 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
-/* === КОЛЕСО РЕКОМЕНДАЦИЙ (только наше, с уникальным классом) === */
+/*
+  ps-canvas-shifted оставлен только как служебный класс состояния.
+  Жёсткого left: 300px больше нет — иначе получался двойной сдвиг волны.
+*/
+canvas.ps-canvas-shifted,
+[class*="VibeWidgetAnimation_root"].ps-canvas-shifted {
+  margin-left: 0 !important;
+}
+
+[class*="VibeWidgetAnimation_root"] img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Lite Mode использует статичную картинку; её размером управляет JS. */
+[class*="VibeWidgetAnimation_root"].ps-lite-animation img {
+  object-fit: contain !important;
+  pointer-events: none !important;
+}
+
+/* === КОЛЕСО РЕКОМЕНДАЦИЙ === */
+.swiper[class*="VibePage_wheel"],
 .swiper.VibePage_wheel__E_p8_ {
-    position: absolute !important;
-    top: 0;
-    left: 0;
-    width: 600px !important;
-    max-width: 90vw !important;
-    height: 100% !important;
-    z-index: 100;
-    transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
-    will-change: transform;
-    background: none;
-    box-shadow: none;
-    overflow-y: auto;
-    scrollbar-width: none;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: var(--ps-wheel-width, 600px) !important;
+  max-width: var(--ps-wheel-max-width, 90vw) !important;
+  height: 100% !important;
+  z-index: 100 !important;
+  transform: translateX(-100%) !important;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: transform, width !important;
+  background: none !important;
+  box-shadow: none !important;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+  scrollbar-width: none !important;
+  box-sizing: border-box !important;
+
+  /*
+    Главное исправление кликов:
+    пустая прозрачная область swiper больше не перекрывает кнопки плеера.
+  */
+  pointer-events: none !important;
 }
 
+.swiper[class*="VibePage_wheel"]:not(.ps-swiper-hidden-left),
 .swiper.VibePage_wheel__E_p8_:not(.ps-swiper-hidden-left) {
-    transform: translateX(0);
+  transform: translateX(0) !important;
 }
 
+/* Сами карточки/элементы колеса остаются кликабельными. */
+.swiper[class*="VibePage_wheel"] .swiper-wrapper,
+.swiper[class*="VibePage_wheel"] .swiper-slide,
+.swiper[class*="VibePage_wheel"] .swiper-slide *,
+.swiper.VibePage_wheel__E_p8_ .swiper-wrapper,
+.swiper.VibePage_wheel__E_p8_ .swiper-slide,
+.swiper.VibePage_wheel__E_p8_ .swiper-slide * {
+  pointer-events: auto !important;
+}
+
+/*
+  ФИКС КЛИКОВ ПО СПЕЦИАЛЬНЫМ ПУНКТАМ КОЛЕСА:
+  "Настроить Мою волну" и "Встряхнуть Мою волну" имеют невидимый shimmer-слой
+  поверх карточки. В оригинальной Яндекс Музыке этот слой не ловит клики.
+  Из-за общего правила .swiper-slide * { pointer-events: auto } он мог стать
+  кликабельным и перехватывать нажатия у настоящей React-кнопки.
+*/
+.swiper[class*="VibePage_wheel"] [data-test-id="WHEEL_SETTING_ITEM"],
+.swiper[class*="VibePage_wheel"] [data-test-id="WHEEL_RESHUFFLE_ITEM"],
+.swiper.VibePage_wheel__E_p8_ [data-test-id="WHEEL_SETTING_ITEM"],
+.swiper.VibePage_wheel__E_p8_ [data-test-id="WHEEL_RESHUFFLE_ITEM"] {
+  position: relative !important;
+  z-index: 3 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.swiper[class*="VibePage_wheel"] [class*="WheelDesktopItem_shimmer"],
+.swiper[class*="VibePage_wheel"] [class*="WheelDesktopItem_shimmer"] *,
+.swiper.VibePage_wheel__E_p8_ [class*="WheelDesktopItem_shimmer"],
+.swiper.VibePage_wheel__E_p8_ [class*="WheelDesktopItem_shimmer"] * {
+  pointer-events: none !important;
+}
+
+.swiper[class*="VibePage_wheel"]::-webkit-scrollbar,
 .swiper.VibePage_wheel__E_p8_::-webkit-scrollbar {
-    display: none;
+  display: none !important;
 }
 
-/* === КНОПКА === */
+/* === КНОПКА "НАСТРОИТЬ" === */
 #ps-custom-settings-btn {
-    position: relative;
-    z-index: 20;
-    cursor: pointer;
-    pointer-events: auto;
+  position: relative !important;
+  z-index: 50 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: 12px !important;
+  box-sizing: border-box !important;
 }
 
-#ps-custom-settings-btn {
-    display: flex;
-    justify-content: center;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 12px !important;
+/* === СОСТОЯНИЕ ОТКРЫТОГО КОЛЕСА === */
+[class*="VibePage_meta"].ps-content-shifted {
+  max-width: 100% !important;
 }
 
 [class*="VibePage_meta"].ps-content-shifted [class*="VibePlayerBar_progress"] {
-    max-width: calc(100% - 600px) !important;
-    width: var(--ps-player-width, 100%) !important;
+  width: var(--ps-player-width, 100%) !important;
+  max-width: 100% !important;
 }
 
-/* Обеспечиваем одинаковое поведение сдвига и анимации для контейнера Lite Mode */
-[class*="VibeWidgetAnimation_root"] {
-    will-change: left, top, margin-left;
-    transition: margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
-    margin-left: 0;
-    transform: none !important;
+/* На узких окнах колесо становится overlay, но не блокирует клики по пустой зоне. */
+[class*="VibePage_meta"][data-ps-layout-mode="overlay"] {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
-[class*="VibeWidgetAnimation_root"].ps-canvas-shifted {
-    margin-left: 300px !important;
+/* Дополнительная защита для очень узкого окна. */
+@media (max-width: 760px) {
+  [class*="VibePage_meta"] {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  [class*="AlbumCover_root"] {
+    gap: clamp(6px, 1.6vw, 12px) !important;
+  }
+
+  [class*="VibePlayerBar_progress"] {
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto !important;
+  }
 }
