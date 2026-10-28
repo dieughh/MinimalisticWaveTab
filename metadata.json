@@ -1,23 +1,106 @@
 {
-  "name": "Minimalistic Wave Tab",
-  "image": "logo.png",
-  "banner": "banner.png",
-  "libraryLogo": "logo.png",
-  "author": "dieugh",
-  "description": "Минималистичный вид новой вкладки «Моя волна».",
-  "version": "1.0.4",
-  "css": "style.css",
-  "script": "script.js",
-  "type": "script",
-  "tags": [],
-  "dependencies": [],
-  "conflictsWith": [],
-  "allowedUrls": [],
-  "supportedVersions": [
-    "^5.97.3"
-  ],
-  "id": "496f02ef-8227-45d4-9e92-06048c8e4322",
-  "fromPext": true,
-  "installSource": "local",
-  "packageHash": "f4039d023573bdeee6400999c0248de1d2aa22d2fac73b36c672c16d94544796"
+    "id": "496f02ef-8227-45d4-9e92-06048c8e4322",
+    "name": "Minimalistic Wave Tab",
+    "description": "Минималистичный вид новой вкладки «Моя волна».",
+    "version": "2.0.0",
+    "author": "dieugh",
+    "type": "web-addon",
+    "image": "logo.png",
+    "banner": "banner.png",
+    "libraryLogo": "logo.png",
+    "css": "script.css",
+    "script": "script.js",
+    "tags": [],
+    "dependencies": [],
+    "allowedUrls": [],
+    "supportedVersions": [
+        "^5.97.3"
+    ],
+    "requirements": {
+        "minHostApi": 1,
+        "capabilities": [
+            "lifecycle-v1",
+            "async-start-v1",
+            "net-per-addon-v1",
+            "typed-settings-v1"
+        ]
+    },
+    "cssScope": "global",
+    "settings": {
+        "sections": [
+            {
+                "title": "Плеер",
+                "items": [
+                    {
+                        "id": "playerWidth",
+                        "name": "Ширина плеера (%)",
+                        "description": "Ширина VibePlayerBar_progress в процентах от родителя.",
+                        "value": 100,
+                        "defaultValue": 100,
+                        "type": "slider",
+                        "min": 20,
+                        "max": 100,
+                        "step": 1
+                    },
+                    {
+                        "id": "coverOffsetX",
+                        "name": "Смещение кнопок по горизонтали (px)",
+                        "description": "Сдвиг кнопок паузы/трека влево/вправо.",
+                        "value": 0,
+                        "defaultValue": 0,
+                        "type": "slider",
+                        "min": -200,
+                        "max": 200,
+                        "step": 10
+                    }
+                ]
+            },
+            {
+                "title": "Анимация",
+                "items": [
+                    {
+                        "id": "animationScale",
+                        "name": "Размер анимации",
+                        "description": "Масштаб canvas относительно родителя (1.0 = 100%, 1.5 = 150%).",
+                        "value": 1,
+                        "defaultValue": 1,
+                        "type": "slider",
+                        "min": 0.5,
+                        "max": 2,
+                        "step": 0.1
+                    },
+                    {
+                        "id": "animationEnabled",
+                        "name": "Показывать анимацию",
+                        "description": "Включает или отключает фоновую анимацию волны.",
+                        "value": true,
+                        "defaultValue": true,
+                        "type": "button"
+                    },
+                    {
+                        "id": "animationLeftOffset",
+                        "name": "Смещение по горизонтали (px)",
+                        "description": "Сдвиг анимации влево/вправо. Отрицательные значения — влево.",
+                        "value": 0,
+                        "defaultValue": 0,
+                        "type": "slider",
+                        "min": -250,
+                        "max": 250,
+                        "step": 10
+                    },
+                    {
+                        "id": "animationTopOffset",
+                        "name": "Смещение по вертикали (px)",
+                        "description": "Сдвиг анимации вверх/вниз. Отрицательные значения — вверх.",
+                        "value": 0,
+                        "defaultValue": 0,
+                        "type": "slider",
+                        "min": -250,
+                        "max": 250,
+                        "step": 10
+                    }
+                ]
+            }
+        ]
+    }
 }
