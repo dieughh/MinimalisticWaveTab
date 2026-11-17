@@ -40,6 +40,8 @@ html [data-mwt-active][data-mwt-active] [class*='VibePage_meta'] {
     align-items: center !important;
     align-self: flex-start !important;
     padding-bottom: var(--ps-bottom-gap, 40px) !important;
+    --ps-meta-padding: clamp(12px, 2vw, 24px);
+    padding-inline: var(--ps-meta-padding) !important;
     width: 100% !important;
     max-width: 100% !important;
     flex: 1 1 auto !important;
@@ -160,12 +162,148 @@ html [data-mwt-active][data-mwt-active] [class*='AlbumCover_root'] > button {
     pointer-events: auto !important;
 }
 
+/* Current hosts render playback controls separately from the album cover. */
+html [data-mwt-active][data-mwt-active] [class*='VibePlayerControls_root'],
+html [data-mwt-active][data-mwt-active]:not(:has([class*='VibePlayerControls_root'])) [class*='AlbumCover_root'] {
+    translate: var(--ps-controls-offset, 0px) 0 !important;
+}
+
 html [data-mwt-active][data-mwt-active] [class*='VibeResetButton_container'] {
     margin-left: auto !important;
     margin-right: auto !important;
 }
 
 /* === АНИМАЦИЯ === */
+html [data-mwt-active][data-mwt-lyrics='open'] .ps-wave-animation {
+    display: none !important;
+}
+
+html [data-mwt-active] .ps-mwt-lyrics {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 630px;
+    max-width: calc(100% - 24px);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    scroll-behavior: auto;
+    overflow-anchor: none;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-color: #ffffff40 transparent;
+    container-type: inline-size;
+    z-index: 3;
+    color: var(--ym-label-color-primary-text, #e6e6e6);
+    mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 85%, transparent);
+}
+
+html [data-mwt-active] .ps-mwt-lyrics[hidden] {
+    display: none !important;
+}
+
+html [data-mwt-active] .ps-mwt-lyrics-rail {
+    padding-block: var(--ps-lyrics-edge-padding, 0px);
+    padding-inline: 10%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+html [data-mwt-active] .ps-mwt-lyric-line {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 clamp(16px, 3cqw, 32px);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: 700 clamp(24px, 6.5cqw, 56px) / 1.25 'YSMusic Headline', 'YS Text', sans-serif;
+    text-align: center;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    opacity: 0.1;
+    transition: opacity 180ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html [data-mwt-active] .ps-mwt-lyric-text {
+    display: block;
+    transform: scale(1);
+    transform-origin: center;
+    transition: transform 240ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+html [data-mwt-active] .ps-mwt-lyric-line,
+html [data-mwt-active] .ps-mwt-lyric-line span {
+    font-family: var(--ym-font-heading, 'YSMusic Headline'), sans-serif !important;
+    font-weight: var(--ym-font-weight-bold, 700) !important;
+    font-style: normal !important;
+    letter-spacing: var(--ym-letter-spacing-m, normal);
+}
+
+html [data-mwt-active] .ps-mwt-lyric-line[data-state='active'] { opacity: 1; }
+html [data-mwt-active] .ps-mwt-lyric-line[data-state='near'] { opacity: 0.3; }
+html [data-mwt-active] .ps-mwt-lyrics[data-follow='manual'] .ps-mwt-lyric-line:not([data-state='active']) { opacity: 0.55; }
+html [data-mwt-active] .ps-mwt-lyric-line[data-state='active'] .ps-mwt-lyric-text { transform: scale(1.2); }
+html [data-mwt-active] .ps-mwt-lyric-gap { min-height: 0; margin: 0; }
+html [data-mwt-active] .ps-mwt-lyric-line:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; }
+
+html [data-mwt-active] .ps-mwt-lyric-line { position: relative; }
+html [data-mwt-active] .ps-mwt-lyric-line[data-countdown] { opacity: 1; }
+html [data-mwt-active] .ps-mwt-lyric-line[data-countdown] .ps-mwt-lyric-text { opacity: 0.3; }
+html [data-mwt-active] .ps-mwt-lyrics-countdown {
+    position: absolute;
+    bottom: calc(100% + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+html [data-mwt-active] .ps-mwt-lyrics-countdown[hidden] { display: none; }
+
+html [data-mwt-active] [data-mwt-control='extra']:disabled { opacity: 0.3; cursor: default; }
+html [data-mwt-active] [data-mwt-control='extra'][aria-pressed='true'] { color: var(--ym-controls-color-primary-default-enabled, #ffdb4d); }
+
+html [data-mwt-active][data-mwt-active] .ps-mwt-control {
+    flex: 0 0 auto;
+    pointer-events: auto;
+}
+
+html [data-mwt-active][data-mwt-active] .ps-mwt-control svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: currentColor;
+}
+
+html [data-mwt-active][data-mwt-active] [data-mwt-control='queue'] {
+    order: -100 !important;
+}
+
+html [data-mwt-active][data-mwt-active] [data-mwt-control='extra'] {
+    order: 100 !important;
+}
+
+html [data-mwt-active][data-mwt-active] .ps-wave-host {
+    position: static !important;
+    transform: none !important;
+}
+
+html [data-mwt-active][data-mwt-active]:not(.ps-layout-ready) [class*='VibePage_meta'],
+html [data-mwt-active][data-mwt-active] .ps-wave-animation:not(.ps-wave-ready) {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Avoid duplicate controls while the example addon is enabled. */
+html [data-mwt-active] [class*='VibePlayerControls_root']:has(> [data-mwt-control='queue']) > [data-pc-vibe-action='queue'],
+html [data-mwt-active] [class*='VibePlayerControls_root']:has(> [data-mwt-control='extra']) > [data-pc-vibe-action='lyrics'] {
+    display: none !important;
+}
+
 html [data-mwt-active][data-mwt-active] canvas.ps-wave-animation {
     position: absolute !important;
     left: 0 !important;
@@ -198,11 +336,9 @@ html [data-mwt-active][data-mwt-active] [class*='VibeWidgetAnimation_root'] {
     max-height: none !important;
     margin: 0 !important;
     transform: none !important;
-    will-change: left, top, width, height, margin-left !important;
+    will-change: transform, width, height !important;
     transition:
-        left 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-        top 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-        margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
         height 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
@@ -223,6 +359,24 @@ html [data-mwt-active][data-mwt-active] [class*='VibeWidgetAnimation_root'] img 
     object-fit: cover !important;
     margin: 0 !important;
     padding: 0 !important;
+}
+
+/* New hosts wrap the fallback image in a flex item with half the wave width. */
+html [data-mwt-active][data-mwt-active] .ps-wave-animation > [class*='VibeWidgetAnimation_fallback'] {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+html [data-mwt-active][data-mwt-active] .ps-wave-animation > canvas {
+    width: 100% !important;
+    height: 100% !important;
+    flex: none !important;
 }
 
 /* Lite Mode использует статичную картинку; её размером управляет JS. */
@@ -307,7 +461,10 @@ html [data-mwt-active][data-mwt-active] .swiper.VibePage_wheel__E_p8_::-webkit-s
 
 /* === КНОПКА "НАСТРОИТЬ" === */
 html [data-mwt-active][data-mwt-active] #ps-custom-settings-btn {
-    position: relative !important;
+    position: absolute !important;
+    top: calc(var(--ps-header-inset, 2.5rem) + 3rem + 12px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
     z-index: 50 !important;
     cursor: pointer !important;
     pointer-events: auto !important;
@@ -315,9 +472,7 @@ html [data-mwt-active][data-mwt-active] #ps-custom-settings-btn {
     justify-content: center !important;
     width: fit-content !important;
     max-width: 100% !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    margin-top: 12px !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
 }
 
@@ -377,7 +532,8 @@ html [data-mwt-active][data-mwt-active] #ps-custom-settings-btn {
         max-height: none !important;
         height: auto !important;
     }
-    html [data-mwt-active][data-mwt-active] .PulseSync_waveProgress_improved > [class*='VibePlayerbarMeta_root'] {
+    html [data-mwt-active][data-mwt-active] .PulseSync_waveProgress_improved > [class*='VibePlayerbarMeta_root'],
+    html [data-mwt-active][data-mwt-active] .PulseSync_waveProgress_improved > [class*='VibePlayerbarTimecodeContent_root'] {
         grid-area: 1 / 1 / auto / -1 !important;
         height: 4rem !important;
     }
@@ -393,5 +549,45 @@ html [data-mwt-active][data-mwt-active] #ps-custom-settings-btn {
     }
     html [data-mwt-active][data-mwt-active] .PulseSync_waveSideControls_right {
         justify-content: flex-end !important;
+    }
+    html [data-mwt-active][data-mwt-active] [class*='AlbumCover_coverContainer'],
+    html [data-mwt-active][data-mwt-active] [class*='AlbumCover_playButtonContainer'] {
+        position: static !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 4rem !important;
+        height: 4rem !important;
+        flex: 0 0 auto !important;
+        transform: none !important;
+    }
+    html [data-mwt-active][data-mwt-active] [class*='AlbumCover_root'] > button {
+        width: 3rem !important;
+        height: 3rem !important;
+        padding: 0.75rem !important;
+    }
+    html [data-mwt-active][data-mwt-active] [class*='AlbumCover_playButtonContainer'] button {
+        position: static !important;
+        inset: auto !important;
+        transform: none !important;
+        translate: none !important;
+        margin: 0 !important;
+        width: 4rem !important;
+        height: 4rem !important;
+        padding: 1rem !important;
+    }
+    html [data-mwt-active][data-mwt-active] [class*='AlbumCover_root'] {
+        order: 2 !important;
+        margin-top: 12px !important;
+    }
+    html [data-mwt-active][data-mwt-active] [class*='VibePlayerBar_progress'] {
+        order: 1 !important;
+    }
+    html [data-mwt-active][data-mwt-active] .PulseSync_waveSideControls button {
+        position: relative !important;
+        inset: auto !important;
+        transform: none !important;
+        width: 3rem !important;
+        height: 3rem !important;
     }
 }

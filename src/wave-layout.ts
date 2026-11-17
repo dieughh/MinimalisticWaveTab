@@ -1,12 +1,17 @@
 import type { AddonApi } from '@pulsesync/addon-sdk'
 import { settings, type WaveSettings } from './settings'
+import { createWaveControls } from './wave-controls'
+import { createWaveLyrics } from './wave-lyrics'
 
 // The original layout calculations are retained for desktop, narrow windows and Lite Mode.
 export function startWaveLayout(api: AddonApi) {
+    const lyrics = createWaveLyrics(api)
+    const controls = createWaveControls(api, lyrics)
     let currentSettings = settings.store
     let isFrozen = document.hidden
     let stopped = false
     let layoutFrame = 0
+    let cancelDefaultSettings: (() => void) | undefined
     let cachedRoot: HTMLElement | null = null
     let wheelOpen = false
     try {
@@ -19,8 +24,9 @@ export function startWaveLayout(api: AddonApi) {
         HTMLElement,
         { style: string | null; classes: boolean[]; hadClass: boolean; mode: string | null; active: string | null }
     >()
-    const ownedClasses = ['ps-content-shifted', 'ps-canvas-shifted', 'ps-swiper-hidden-left', 'ps-lite-animation', 'ps-wave-animation']
+    const ownedClasses = ['ps-content-shifted', 'ps-canvas-shifted', 'ps-swiper-hidden-left', 'ps-lite-animation', 'ps-wave-animation', 'ps-wave-host', 'ps-wave-ready', 'ps-layout-ready']
     const buttons = new Set<HTMLButtonElement>()
+    const readyTimers = new Map<HTMLElement, () => void>()
     function remember<T extends HTMLElement>(element: T | null): T | null {
         if (element && !snapshots.has(element))
             snapshots.set(element, {
@@ -43,6 +49,14 @@ export function startWaveLayout(api: AddonApi) {
     const OVERLAY_THRESHOLD = 750
     const SIDE_GAP = 24
     const MIN_CONTENT_WIDTH = 560
+
+    function markReady(element: HTMLElement, name: string) {
+        if (element.classList.contains(name) || readyTimers.has(element)) return
+        readyTimers.set(element, api.setTimeout(() => {
+            readyTimers.delete(element)
+            if (!stopped && element.isConnected) element.classList.add(name)
+        }, 60))
+    }
 
     function getRoot() {
         const root = cachedRoot?.isConnected ? cachedRoot : remember(document.querySelector<HTMLElement>('[class*="VibePage_root"]'))
@@ -135,41 +149,47 @@ export function startWaveLayout(api: AddonApi) {
             root?.style.removeProperty(name)
     }
 
-    function applyAll(values: WaveSettings) {
+    function applyAll(values: WaveSettings, immediate = false) {
         if (isFrozen) return
         const root = getRoot()
         root?.style.setProperty('--ps-player-width', values.playerWidth + '%')
-        const cover = remember(root?.querySelector<HTMLElement>('[class*="AlbumCover_root"]') ?? null)
-        if (cover) cover.style.transform = 'translateX(' + values.coverOffsetX + 'px)'
+        root?.style.setProperty('--ps-controls-offset', values.coverOffsetX + 'px')
         const animation = getAnimationElement()
         if (animation) animation.style.display = values.animationEnabled ? '' : 'none'
-        scheduleLayout()
+        if (immediate) {
+            cancelAnimationFrame(layoutFrame)
+            layoutFrame = 0
+            updateLayout()
+        } else scheduleLayout()
     }
 
-    function centerCanvas() {
+    function centerCanvas(frameWidth?: number) {
         if (isFrozen) return
+        const root = getRoot()
+        if (root) lyrics.layout(root)
         const animation = getAnimationElement()
         if (!animation) return
         if (!currentSettings.animationEnabled) {
             animation.style.display = 'none'
             return
         }
-        const root = getRoot()
+        animation.style.display = ''
         if (!root) return
         const rootRect = root.getBoundingClientRect()
         if (!rootRect.width || !rootRect.height) return
         const meta = getMeta()
-        const useMeta = !!meta && isWheelOpen(getWheelElement())
-        const frame = useMeta ? meta.getBoundingClientRect() : rootRect
-        if (!frame.width || !frame.height) return
+        // Keep React nodes in place, but give the wave one stable containing block.
+        for (let parent = animation.parentElement; parent && parent !== meta && parent !== root; parent = parent.parentElement) {
+            remember(parent)
+            if (!parent.classList.contains('ps-wave-host')) parent.classList.add('ps-wave-host')
+        }
+        const width = frameWidth ?? rootRect.width
         const lite = isLiteAnimationElement(animation)
         const scale = currentSettings.animationScale
-        const base = Math.min(frame.width, rootRect.height)
+        const base = Math.min(width, rootRect.height)
         const minSize = Math.min(260, base)
         const maxSize = Math.max(minSize, Math.min(1400, rootRect.height * 1.55, rootRect.width * 0.92))
-        const size = lite ? clampNumber(base * 0.78 * scale, minSize, maxSize) : Math.max(frame.width, rootRect.height) * scale
-        const left = (useMeta ? frame.left - rootRect.left : 0) + (frame.width - size) / 2 + currentSettings.animationLeftOffset
-        const top = (rootRect.height - size) / 2 + currentSettings.animationTopOffset
+        const size = lite ? clampNumber(base * 0.78 * scale, minSize, maxSize) : Math.max(width, rootRect.height) * scale
         animation.classList.toggle('ps-lite-animation', lite)
         animation.style.display = ''
         animation.style.position = 'absolute'
@@ -177,14 +197,10 @@ export function startWaveLayout(api: AddonApi) {
         animation.style.setProperty('height', size + 'px', 'important')
         animation.style.zIndex = '1'
         animation.style.pointerEvents = 'none'
-        // Keep React-owned nodes in place; translate root coordinates into their containing block.
-        const parent = animation.offsetParent as HTMLElement | null
-        const parentRect = parent?.getBoundingClientRect() ?? rootRect
-        const originX = rootRect.left - parentRect.left - (parent?.clientLeft ?? 0) + (parent?.scrollLeft ?? 0)
-        const originY = rootRect.top - parentRect.top - (parent?.clientTop ?? 0) + (parent?.scrollTop ?? 0)
-        animation.style.setProperty('left', (originX + (lite ? left : 0)) + 'px', 'important')
-        animation.style.setProperty('top', (originY + (lite ? top : 0)) + 'px', 'important')
-        animation.style.setProperty('transform', lite ? 'none' : 'translate(' + left + 'px, ' + top + 'px)', 'important')
+        animation.style.setProperty('left', '50%', 'important')
+        animation.style.setProperty('top', '50%', 'important')
+        animation.style.setProperty('transform', 'translate(-50%, -50%) translate(' + currentSettings.animationLeftOffset + 'px, ' + currentSettings.animationTopOffset + 'px)', 'important')
+        markReady(animation, 'ps-wave-ready')
         if (!lite) animation.style.objectFit = 'cover'
         else {
             animation.style.margin = '0'
@@ -210,10 +226,16 @@ export function startWaveLayout(api: AddonApi) {
         if (isFrozen) return
         const root = getRoot()
         if (!root) return
+        markReady(root, 'ps-layout-ready')
+        controls.refresh(root)
         const swiper = getWheelElement()
         const meta = getMeta()
         // Mirror the context heading's top inset at the bottom of the player.
-        if (meta) root.style.setProperty('--ps-bottom-gap', getComputedStyle(meta).paddingTop)
+        if (meta) {
+            const style = getComputedStyle(meta)
+            root.style.setProperty('--ps-bottom-gap', style.paddingTop)
+            meta.style.setProperty('--ps-header-inset', style.paddingTop)
+        }
         let rect = root.getBoundingClientRect()
         const nav = document.querySelector<HTMLElement>('[class*="NavbarMobile_root"]')
         const navHeight = nav && getComputedStyle(nav).display !== 'none' ? nav.getBoundingClientRect().height : 0
@@ -252,10 +274,10 @@ export function startWaveLayout(api: AddonApi) {
         meta.style.paddingRight = '16px'
         meta.style.transform = ''
         meta.style.transformOrigin = ''
-        centerCanvas()
+        centerCanvas(width - occupied)
     }
 
-    function refresh() {
+    function refresh(immediate = false) {
         if (stopped || isFrozen) return
         const root = getRoot()
         if (!root) return
@@ -276,15 +298,11 @@ export function startWaveLayout(api: AddonApi) {
                 button.setAttribute('aria-expanded', String(wheelOpen))
                 applyWheelState(getWheelElement(), getMeta(), getAnimationElement(), wheelOpen)
             })
-            const reset = root.querySelector('[class*="VibeResetButton_root"]')
-            if (reset) reset.after(button)
-            else if (meta) {
-                const player = meta.querySelector('[class*="VibePage_playerBlock"]')
-                meta.insertBefore(button, player)
-            }
+            // The addon owns this button; keep it outside React's changing context block.
+            if (meta) meta.append(button)
             if (button.isConnected) buttons.add(button)
         }
-        applyAll(currentSettings)
+        applyAll(currentSettings, immediate)
     }
 
     const observer = new MutationObserver(records => {
@@ -310,7 +328,7 @@ export function startWaveLayout(api: AddonApi) {
         if (root) {
             resizeObserver.observe(root)
             observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
-            refresh()
+            refresh(true)
         }
     }
     // Only discover a new Wave page when the previous root has been detached.
@@ -322,9 +340,29 @@ export function startWaveLayout(api: AddonApi) {
         rootObserver.observe(document.body, { childList: true, subtree: true })
         observeRootSize()
     }
-    const removeSettingsListener = api.settings.onChange(() => {
-        currentSettings = settings.store
-        refresh()
+    const removeSettingsListener = api.settings.onChange(values => {
+        // PulseSync can publish an empty/partial snapshot while saving settings.
+        // Keep the last applied values for missing keys instead of flashing defaults.
+        const keys = (Object.keys(settings.defaults) as (keyof WaveSettings)[]).filter(key => Object.hasOwn(values, key))
+        if (!keys.length) return
+        const resolved = settings.store
+        const next = { ...currentSettings, ...Object.fromEntries(keys.map(key => [key, resolved[key]])) }
+        cancelDefaultSettings?.()
+        cancelDefaultSettings = undefined
+        const allKeys = Object.keys(settings.defaults) as (keyof WaveSettings)[]
+        const apply = () => {
+            cancelDefaultSettings = undefined
+            if (stopped) return
+            currentSettings = next
+            // Apply the complete layout before painting, including the narrow-player scale.
+            refresh(true)
+        }
+        // PulseSync first broadcasts manifest defaults when saving through its UI,
+        // then the saved values. A real reset still applies when defaults remain stable.
+        if (allKeys.every(key => next[key] === settings.defaults[key]) &&
+            allKeys.some(key => currentSettings[key] !== settings.defaults[key])) {
+            cancelDefaultSettings = api.setTimeout(apply, 300)
+        } else apply()
     })
     api.listen(window, 'resize', scheduleLayoutBurst)
     api.listen(document, 'visibilitychange', () => {
@@ -333,7 +371,7 @@ export function startWaveLayout(api: AddonApi) {
             cancelAnimationFrame(layoutFrame)
             layoutFrame = 0
         } else {
-            refresh()
+            refresh(true)
             scheduleLayoutBurst()
         }
     })
@@ -355,9 +393,14 @@ export function startWaveLayout(api: AddonApi) {
         rootObserver.disconnect()
         resizeObserver.disconnect()
         removeSettingsListener()
+        cancelDefaultSettings?.()
+        readyTimers.forEach(cancel => cancel())
+        readyTimers.clear()
         cancelAnimationFrame(layoutFrame)
         cancelBurst.forEach(cancel => cancel())
         buttons.forEach(button => button.remove())
+        controls.cleanup()
+        lyrics.cleanup()
         for (const [element, snapshot] of snapshots) {
             if (snapshot.style === null) element.removeAttribute('style')
             else element.setAttribute('style', snapshot.style)

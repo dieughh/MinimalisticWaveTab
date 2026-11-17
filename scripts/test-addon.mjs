@@ -15,7 +15,7 @@ assert.deepEqual(
     ['playerWidth', 'coverOffsetX', 'animationScale', 'animationEnabled', 'animationLeftOffset', 'animationTopOffset'],
 )
 
-async function checkLayout({ lite = false, width = 1400, delayed = false } = {}) {
+async function checkLayout({ lite = false, width = 1400, delayed = false, modern = true, mobile = false } = {}) {
     const window = new Window({
         url: 'https://music.yandex.ru/',
         settings: {
@@ -50,7 +50,9 @@ async function checkLayout({ lite = false, width = 1400, delayed = false } = {})
     const root = document.createElement('main')
     root.className = 'VibePage_root__test'
     root.style.color = 'red'
-    root.innerHTML = `<div class="VibePage_meta__test"><div class="VibePage_textContainer__test">${lite ? '<div class="VibeWidgetAnimation_root__test"><img src="https://example.com/wave.png"></div>' : '<canvas></canvas>'}</div><div class="VibeResetButton_root__test"></div><div class="VibePage_playerBlock__test"><div class="AlbumCover_root__test"></div></div></div><div class="swiper VibePage_wheel__test"></div>`
+    const animationMarkup = lite ? '<div class="VibeWidgetAnimation_fallback__test"><img src="https://example.com/wave.png"></div>' : '<canvas></canvas>'
+    root.innerHTML = `<div class="VibePage_meta__test"><div class="VibePage_textContainer__test">${modern || lite ? `<div class="VibeWidgetAnimation_root__test">${animationMarkup}</div>` : animationMarkup}</div><div class="VibeResetButton_root__test"></div><div class="VibePage_playerBlock__test"><div class="AlbumCover_root__test"></div>${modern ? '<div class="VibePlayerControls_root__test"><button data-pc-vibe-action="queue">Example queue</button><button class="VibePlayerControls_skipButton__test">Previous</button><button>Play</button><button data-pc-vibe-action="lyrics">Example lyrics</button></div>' : ''}</div></div><div class="swiper VibePage_wheel__test"></div>`
+    if (mobile) root.querySelector('[class*="AlbumCover_root"]').innerHTML = '<button>Previous</button><div class="AlbumCover_coverContainer__test"><div class="AlbumCover_playButtonContainer__test"><button data-test-id="PLAY_BUTTON">Play</button></div></div><button>Next</button>'
     const background = document.createElement('div')
     background.id = 'vibe-background-container'
     background.innerHTML = '<canvas class="cbg-pixel-canvas" style="width: 100%; height: 100%"></canvas>'
@@ -65,8 +67,10 @@ async function checkLayout({ lite = false, width = 1400, delayed = false } = {})
     let values = { animationEnabled: false, playerWidth: 80, coverOffsetX: 30 }
     const listeners = new Set()
     const cleanups = []
+    const queueCalls = []
     const api = {
         addonId: config.id,
+        client: { openFullscreenPlayer: mode => { queueCalls.push(mode); return true } },
         settings: {
             getCurrent: () => values,
             onChange: callback => {
@@ -109,23 +113,97 @@ async function checkLayout({ lite = false, width = 1400, delayed = false } = {})
     assert.equal(frameId, framesAfterResize, 'resize events within one frame must share one layout callback')
     flushFrames()
     assert.equal(root.querySelectorAll('#ps-custom-settings-btn').length, 1)
-    const animation = root.querySelector(lite ? '[class*="VibeWidgetAnimation_root"]' : 'canvas:not(.cbg-pixel-canvas)')
+    if (modern || mobile) {
+        const controls = root.querySelector(modern ? '[class*="VibePlayerControls_root"]' : '[class*="AlbumCover_root"]')
+        const queue = controls.querySelector('[data-mwt-control="queue"]')
+        const extra = controls.querySelector('[data-mwt-control="extra"]')
+        assert.equal(controls.firstElementChild, queue)
+        assert.equal(controls.lastElementChild, extra)
+        queue.click()
+        assert.deepEqual(queueCalls, ['queue'], 'queue button must open the native queue')
+        let lyricsClicks = 0
+        controls.querySelector(modern ? '[data-pc-vibe-action="lyrics"]' : '[data-test-id="PLAY_BUTTON"]').addEventListener('click', () => lyricsClicks++)
+        extra.click()
+        assert.equal(lyricsClicks, 0, 'the extra button must not open lyrics')
+        assert.equal(extra.getAttribute('aria-disabled'), 'true')
+        if (modern) {
+            assert.equal(window.getComputedStyle(controls.querySelector('[data-pc-vibe-action="queue"]')).display, 'none')
+            assert.equal(window.getComputedStyle(controls.querySelector('[data-pc-vibe-action="lyrics"]')).display, 'none')
+        }
+        assert.equal(controls.querySelectorAll('[data-mwt-control]').length, 2)
+        const native = controls.querySelector('button:not([data-mwt-control]):not([data-pc-vibe-action])')
+        const next = native.nextSibling
+        controls.append(native)
+        assert.equal(window.getComputedStyle(extra).order, '100', 'extra stays visually last before a React update is reconciled')
+        await flushMutations()
+        flushFrames()
+        assert.equal(controls.lastElementChild, extra)
+        controls.insertBefore(native, next)
+        await flushMutations()
+        flushFrames()
+    }
+    const animation = root.querySelector(modern || lite ? '[class*="VibeWidgetAnimation_root"]' : 'canvas:not(.cbg-pixel-canvas)')
     assert.equal(animation.parentElement, root.querySelector('[class*="VibePage_textContainer"]'), 'React must retain ownership of animation nodes')
     assert.equal(animation.style.display, 'none')
     assert.equal(root.style.getPropertyValue('--ps-player-width'), '80%')
-    assert.equal(root.querySelector('[class*="AlbumCover_root"]').style.transform, 'translateX(30px)')
+    assert.equal(root.style.getPropertyValue('--ps-controls-offset'), '30px')
+    assert.equal(root.querySelector('[class*="AlbumCover_root"]').style.transform, '', 'do not move the empty album cover instead of playback controls')
     values = { ...values, animationEnabled: true, animationScale: 1.2, animationLeftOffset: 10, animationTopOffset: 20 }
     for (const listener of listeners) listener(values)
+    assert(parseFloat(animation.style.width) > 0, 'settings must apply geometry synchronously before the next paint')
     flushFrames()
     assert.equal(animation.style.display, '')
     assert(parseFloat(animation.style.width) > 0)
     assert.equal(animation.classList.contains('ps-lite-animation'), lite)
+    assert.equal(animation.style.left, '50%')
+    assert.equal(animation.style.top, '50%')
+    assert(animation.style.transform.startsWith('translate(-50%, -50%)'), 'wave must follow the stable containing block, not intermediate screen coordinates')
     const toggle = root.querySelector('#ps-custom-settings-btn')
     toggle.click()
     flushFrames()
     assert.equal(toggle.getAttribute('aria-expanded'), 'true')
     assert.equal(window.localStorage.getItem('ps_wheel_open'), 'true')
     assert.equal(meta.getAttribute('data-ps-layout-mode'), width < 750 ? 'overlay-shift' : 'side')
+    const scaleBeforeSettings = root.style.getPropertyValue('--ps-player-scale')
+    values = { ...values, coverOffsetX: -40 }
+    for (const listener of listeners) listener(values)
+    assert.equal(root.style.getPropertyValue('--ps-player-scale'), scaleBeforeSettings, 'unrelated settings must not reset the player scale for a frame')
+    assert.equal(root.style.getPropertyValue('--ps-controls-offset'), '-40px')
+    const savedValues = values
+    values = {}
+    for (const listener of listeners) listener(values)
+    assert.equal(root.style.getPropertyValue('--ps-player-width'), '80%', 'empty save snapshots must not flash the default width')
+    assert.equal(root.style.getPropertyValue('--ps-player-scale'), scaleBeforeSettings)
+    values = { coverOffsetX: 20 }
+    for (const listener of listeners) listener(values)
+    assert.equal(root.style.getPropertyValue('--ps-player-width'), '80%', 'partial settings must retain the applied player width')
+    assert.equal(root.style.getPropertyValue('--ps-controls-offset'), '20px')
+    values = savedValues
+    for (const listener of listeners) listener(values)
+    const defaults = Object.fromEntries(metadata.settings.sections.flatMap(section => section.items.map(item => [item.id, item.defaultValue])))
+    values = defaults
+    for (const listener of listeners) listener(values)
+    assert.equal(root.style.getPropertyValue('--ps-player-width'), '80%', 'manifest-default broadcast must not expand the player')
+    await new Promise(resolve => setTimeout(resolve, 60))
+    values = { ...savedValues, playerWidth: 66 }
+    for (const listener of listeners) listener(values)
+    assert.equal(root.style.getPropertyValue('--ps-player-width'), '66%', 'saved settings must replace the transient defaults directly')
+    values = defaults
+    for (const listener of listeners) listener(values)
+    assert.equal(root.style.getPropertyValue('--ps-player-width'), '66%')
+    await new Promise(resolve => setTimeout(resolve, 330))
+    assert.equal(root.style.getPropertyValue('--ps-player-width'), '100%', 'an intentional reset must apply stable defaults')
+    values = savedValues
+    for (const listener of listeners) listener(values)
+    const context = root.querySelector('[class*="VibeResetButton_root"]')
+    const contextNext = context.nextSibling
+    context.remove()
+    await flushMutations()
+    flushFrames()
+    assert.equal(root.querySelector('#ps-custom-settings-btn'), toggle, 'context removal must retain the same settings button')
+    assert.equal(toggle.parentElement, meta, 'settings button belongs to the stable meta container')
+    assert.equal(window.getComputedStyle(toggle).position, 'absolute', 'context height must not position the settings button')
+    meta.insertBefore(context, contextNext)
     if (width < 750) {
         assert.equal(root.style.getPropertyValue('--ps-wheel-height'), '', 'wheel must retain its full height')
         assert(parseFloat(meta.style.marginLeft) >= 320, 'content must clear the complete wheel width')
@@ -162,6 +240,8 @@ async function checkLayout({ lite = false, width = 1400, delayed = false } = {})
     flushFrames()
     assert.equal(replacement.querySelectorAll('#ps-custom-settings-btn').length, 1)
     assert.equal(replacement.style.getPropertyValue('--ps-player-width'), '80%')
+    const freshAnimation = replacement.querySelector('.ps-wave-animation')
+    assert.equal(window.getComputedStyle(freshAnimation).transition, 'none', 'fresh pages must not animate from the native oversized wave')
     for (const cleanup of cleanups) cleanup()
     deactivate()
     deactivate()
@@ -182,6 +262,8 @@ async function checkLayout({ lite = false, width = 1400, delayed = false } = {})
 }
 
 await checkLayout()
+await checkLayout({ modern: false })
 await checkLayout({ lite: true })
 await checkLayout({ width: 650, delayed: true })
+await checkLayout({ width: 650, modern: false, mobile: true })
 console.log('OK: manifest, settings, canvas/Lite Mode, narrow layout, delayed mount, scoped styles, navigation, cleanup and reactivation')

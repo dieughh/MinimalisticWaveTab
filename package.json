@@ -1,6 +1,6 @@
 {
   "name": "minimalistic-wave-tab",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "description": "Минималистичный вид новой вкладки «Моя волна».",
@@ -12,7 +12,7 @@
     "sync": "node ./scripts/sync-addon.mjs",
     "build:sync": "node ./node_modules/vite/bin/vite.js build && node ./scripts/sync-addon.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit && node ./node_modules/vite/bin/vite.js build && node ./scripts/test-addon.mjs"
+    "test": "tsc --noEmit && node ./node_modules/vite/bin/vite.js build && node ./scripts/test-addon.mjs && node ./scripts/test-lyrics.mjs"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
